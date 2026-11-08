@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Вход — админка</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="card">
+      <h1>Вход</h1>
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <form method="post" action="/login">
+        <input type="password" name="password" placeholder="Пароль" autofocus required>
+        <button type="submit">Войти</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

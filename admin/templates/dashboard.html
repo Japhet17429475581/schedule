@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Статистика бота ВГСПУ</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  {% macro pct(value) -%}
+    {{ '%.2f%%'|format(value) if value is not none else '—' }}
+  {%- endmacro %}
+  <div class="wrap">
+    <div class="top-row">
+      <h1>Статистика бота</h1>
+      <form method="post" action="/logout"><button type="submit">Выйти</button></form>
+    </div>
+    <p>На {{ activity.date }}, дни по московскому времени. WAU и MAU включают текущий день.</p>
+    <div class="grid">
+      {% for key, label in [('total', 'Всего наблюдаемых пользователей'),
+          ('active_today', 'DAU — активны сегодня'), ('active_7d', 'WAU — активны за 7 дней'),
+          ('active_30d', 'MAU — активны за 30 дней'), ('new_today', 'Новых сегодня'),
+          ('new_7d', 'Новых за 7 дней'), ('new_30d', 'Новых за 30 дней'),
+          ('returning_today', 'Вернувшихся сегодня'), ('inactive_30d', 'Неактивны 30 дней'),
+          ('interactions_today', 'Действий сегодня'), ('messages', 'Сообщений всего'),
+          ('callbacks', 'Нажатий кнопок всего')] %}
+      <div class="stat"><div class="value">{{ activity[key] }}</div><div class="label">{{ label }}</div></div>
+      {% endfor %}
+      <div class="stat"><div class="value">{{ pct(activity.stickiness_pct) }}</div><div class="label">DAU / MAU</div></div>
+      <div class="stat"><div class="value">{{ activity.interactions_per_dau if activity.interactions_per_dau is not none else '—' }}</div><div class="label">Действий на активного сегодня</div></div>
+      <div class="stat"><div class="value">{{ pct(activity.group_selection_pct) }}</div><div class="label">Выбрали группу ({{ activity.with_group }})</div></div>
+    </div>
+    <div class="card">
+      <h2>Retention</h2>
+      <p>Доля пользователей, вернувшихся ровно на 1-й, 7-й или 30-й день после первого наблюдаемого действия.
+         Учитываются только полностью завершённые дни возврата. «—» означает, что данных ещё нет.</p>
+      <div class="grid">
+        {% for day in [1, 7, 30] %}
+        {% set metric = activity.retention['d' ~ day] %}
+        <div class="stat"><div class="value">{{ pct(metric.pct) }}</div>
+          <div class="label">D{{ day }} · {{ metric.returned }} / {{ metric.eligible }} пользователей</div></div>
+        {% endfor %}
+      </div>
+      <table><thead><tr><th>Первый день</th><th>Пользователей</th><th>D1</th><th>D7</th><th>D30</th></tr></thead>
+        <tbody>{% for cohort in activity.cohorts %}
+          <tr><td>{{ cohort.date }}</td><td>{{ cohort.users }}</td><td>{{ pct(cohort.d1) }}</td><td>{{ pct(cohort.d7) }}</td><td>{{ pct(cohort.d30) }}</td></tr>
+        {% else %}<tr><td colspan="5">Пока нет данных</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Запросы расписания за 30 дней</h2>
+      <p>Всего {{ activity.schedule_requests_30d }} · Успешность {{ pct(activity.schedule_success_pct) }}</p>
+      <div class="grid">
+        <div class="stat"><div class="value">{{ activity.schedule_30d.success }}</div><div class="label">Успешно</div></div>
+        <div class="stat"><div class="value">{{ activity.schedule_30d.unavailable }}</div><div class="label">Нет расписания на портале</div></div>
+        <div class="stat"><div class="value">{{ activity.schedule_30d.error }}</div><div class="label">Ошибки</div></div>
+      </div>
+      <p>Эти события собираются после установки обновления. Отсутствие расписания учитывается отдельно от ошибок.</p>
+    </div>
+    <div class="card">
+      <h2>Активность по дням</h2>
+      <table><thead><tr><th>Дата</th><th>Активных</th><th>Действий</th></tr></thead><tbody>
+      {% for day in activity.daily %}<tr><td>{{ day.date }}</td><td>{{ day.active }}</td><td>{{ day.interactions }}</td></tr>
+      {% else %}<tr><td colspan="3">Пока нет данных</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    <div class="card">
+      <h2>Пользователи по группам</h2>
+      <p>Сохранённых групп: {{ total_users }} пользователей.</p>
+      <table><thead><tr><th>Группа</th><th>Пользователей</th></tr></thead><tbody>
+      {% for group, count in groups %}<tr><td>{{ group }}</td><td>{{ count }}</td></tr>
+      {% else %}<tr><td colspan="2">Пока нет данных</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+  </div>
+</body>
+</html>
