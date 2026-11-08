@@ -152,11 +152,14 @@ def format_report(report: dict) -> str:
     return "\n".join(lines)
 
 
-async def main(json_output: bool = False) -> None:
+async def main(json_output: bool = False, count_only: bool = False) -> None:
     from src.database import UserRepository, close_db
 
     try:
         repo = UserRepository()
+        if count_only:
+            print(await repo.count_all_users())
+            return
         report = await repo.activity_stats()
         report["groups"] = await repo.group_stats()
         if json_output:
@@ -169,11 +172,15 @@ async def main(json_output: bool = False) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Понятная статистика бота расписания на русском.")
-    parser.add_argument("--json", action="store_true", help="Вывести данные в JSON вместо отчёта.")
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true", help="Вывести данные в JSON вместо отчёта.")
+    output.add_argument(
+        "--count", action="store_true", help="Вывести только общее число пользователей."
+    )
     parser.add_argument("--debug", action="store_true", help="Показать полную ошибку при сбое.")
     args = parser.parse_args()
     try:
-        asyncio.run(main(json_output=args.json))
+        asyncio.run(main(json_output=args.json, count_only=args.count))
     except Exception:
         if args.debug:
             raise

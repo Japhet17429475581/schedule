@@ -47,6 +47,12 @@ class UserRepository:
         async with SessionFactory() as session:
             return int(await session.scalar(select(func.count()).select_from(User)) or 0)
 
+    async def count_all_users(self) -> int:
+        """Все известные пользователи, включая тех, кто ещё не выбрал группу."""
+        known_users = select(User.telegram_id).union(select(UserStats.telegram_id)).subquery()
+        async with SessionFactory() as session:
+            return int(await session.scalar(select(func.count()).select_from(known_users)) or 0)
+
     async def group_stats(self) -> list[tuple[str, int]]:
         async with SessionFactory() as session:
             result = await session.execute(
